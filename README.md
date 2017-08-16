@@ -1,6 +1,23 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
-   
+
+------------------------------------------
+
+## Path planing solution
+
+Click to watch video:
+
+[![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/pSzZVTGztQg/0.jpg)](http://www.youtube.com/watch?v=pSzZVTGztQg)
+
+I was trying to use spline and Jerk Minimizing Trajectory, but finally I added jerk/acceleration limits instead of JMT.
+I am planning 100 samples ahead (2 seconds). These samples are generated using spline with 4 waypoints ahead (+30m, +60m, +90m, +120m). Acceleration is limited to 5 m/s^2 and deceleration is limited to 7.5 m/s^2. There are three modes for speed controller with hysteresis: accelerate, decelerate, keep speed. Speed is limited to 49mph and minimum is 0 mph (only forward motion).
+
+### Behavior planning
+
+Information from sensor fusion is used to plan our cars behavior. For each lane minimum speed and minimum distance to obstacle are computed. Using this informations costs for each lane are calculated. There is added additional cost of changing lane, so vehicle won't change lanes if there is no need. If cost of other lane is lower than the cost of the current one, the car is changing lane. The current speed of the car is limited to the speed of the car in front. If there is no car in front our car should go with maximum speed.
+
+------------------------------------------
+
 ### Simulator. You can download the Term3 Simulator BETA which contains the Path Planning Project from the [releases tab](https://github.com/udacity/self-driving-car-sim/releases).
 
 In this project your goal is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. You will be provided the car's localization and sensor fusion data, there is also a sparse map list of waypoints around the highway. The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible, note that other cars will try to change lanes too. The car should avoid hitting other cars at all cost as well as driving inside of the marked road lanes at all times, unless going from one lane to another. The car should be able to make one complete loop around the 6946m highway. Since the car is trying to go 50 MPH, it should take a little over 5 minutes to complete 1 loop. Also the car should not experience total acceleration over 10 m/s^2 and jerk that is greater than 50 m/s^3.
@@ -36,13 +53,13 @@ Here is the data provided from the Simulator to the C++ Program
 #### Previous path data given to the Planner
 
 //Note: Return the previous list but with processed points removed, can be a nice tool to show how far along
-the path has processed since last time. 
+the path has processed since last time.
 
 ["previous_path_x"] The previous list of x points previously given to the simulator
 
 ["previous_path_y"] The previous list of y points previously given to the simulator
 
-#### Previous path's end s and d values 
+#### Previous path's end s and d values
 
 ["end_path_s"] The previous list's last point's frenet s value
 
@@ -50,7 +67,7 @@ the path has processed since last time.
 
 #### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates.
 
 ## Details
 
@@ -80,7 +97,7 @@ A really helpful resource for doing this project and creating smooth trajectorie
   * Run either `install-mac.sh` or `install-ubuntu.sh`.
   * If you install from source, checkout to commit `e94b6e1`, i.e.
     ```
-    git clone https://github.com/uWebSockets/uWebSockets 
+    git clone https://github.com/uWebSockets/uWebSockets
     cd uWebSockets
     git checkout e94b6e1
     ```
