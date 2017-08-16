@@ -61,7 +61,7 @@ string hasData(string s) {
 
 void Planner(std::map<int, double[4]> cars, double car_s, int &lane, double &speed)
 {
-  double lane_speed[3]={-1,-1,-1};
+  double lane_speed[3]={kph2mps(mph2kph(51)),kph2mps(mph2kph(51)),kph2mps(mph2kph(51))};
   double lane_dist[3]={999,999,999};
   double lane_cost[3]={0,0,0};
 
@@ -71,21 +71,18 @@ void Planner(std::map<int, double[4]> cars, double car_s, int &lane, double &spe
     int l = it->second[3];
     double spd = it->second[2];
 
-    printf("l %d  s %f  spd %f\n", l,s,spd);
-    if(fabs(s)>30)
+    // printf("l %d  s %f  spd %f\n", l,s,spd);
+    if(s>-15 && s<30)
     {
-      lane_speed[l]=max(lane_speed[l],spd);
+      lane_speed[l]=min(lane_speed[l],spd);
     }
 
     lane_dist[l]=min(lane_dist[l],fabs(s));
 
-    //slow down
-    if(l==lane && s>0 && s<50)
-    {
-      speed = spd-kph2mps(5);
-      // return;
-    }
   }
+
+  if (lane_speed[lane]>0 && lane_speed[lane]<kph2mps(mph2kph(52)))
+    speed = lane_speed[lane]-kph2mps(mph2kph(2));
   printf("Lane speed: %f %f %f\t", lane_speed[0],lane_speed[1],lane_speed[2]);
   printf("dist: %f %f %f\t", lane_dist[0],lane_dist[1],lane_dist[2]);
 
@@ -102,19 +99,19 @@ void Planner(std::map<int, double[4]> cars, double car_s, int &lane, double &spe
       lane_cost[i]+=150;
 
       if(abs(lane-i)>1)
-        lane_cost[i]+=1000;
+        lane_cost[i]+=10000;
 
     }
 
-    if(lane_dist[i]<10)
+    if(lane_dist[i]>-10 && lane_dist[i]<10)
     {
       lane_cost[i]+=1000;
     }
-    if(lane_dist[i]<30)
+    if(lane_dist[i]>10 && lane_dist[i]<30)
     {
       lane_cost[i]+=500;
     }
-    if(lane_dist[i]<50)
+    if((lane_dist[i]>30 && lane_dist[i]<50))
     {
       lane_cost[i]+=100;
     }
@@ -153,6 +150,11 @@ void Planner(std::map<int, double[4]> cars, double car_s, int &lane, double &spe
       lowest_cost_lane = i;
   }
   lane = lowest_cost_lane;
+
+  if(speed>kph2mps(mph2kph(49)))
+    speed=kph2mps(mph2kph(49));
+  if(speed<0)
+    speed =0;
 }
 
 
@@ -379,7 +381,7 @@ int main() {
             vector<double> ptsx;
             vector<double> ptsy;
 
-            double curr_vel = kph2mps(mph2kph(car_speed));
+            static double curr_vel = kph2mps(mph2kph(car_speed));
 
             double last_end_x;
             double last_end_y;
@@ -396,6 +398,7 @@ int main() {
 
             if(path_size < 2)
             {
+              curr_vel = car_speed;
                 last_end_x = car_x;
                 last_end_y = car_y;
                 end_path_s = car_s;
@@ -426,11 +429,11 @@ int main() {
             }
             double dist_inc = 0.3;
 
-            vector< double> start ={end_path_s,curr_vel,0};
-            double T=(1+num_samples-path_size)*0.02;
-            vector <double> end={end_path_s+T*ref_vel,ref_vel,0};
-            std::vector<double> traj = JMT(start, end, T);
-
+            // vector< double> start ={car_s,curr_vel,0};
+            // double T=(1+num_samples-path_size)*0.02;
+            // vector <double> end={end_path_s+T*ref_vel,ref_vel,0};
+            // std::vector<double> traj = JMT(start, end, T+path_size*0.2);
+            //
             // printf("%f,%f,%f => %f,%f,%f\t", start[0], start[1], start[2],end[0],end[1],end[2]);
             // printf("curr_vel: %f  ", curr_vel);
             // printf("Traj: ");
@@ -465,20 +468,19 @@ int main() {
             //     printf("pts: %f, %f\n", ptsx[i], ptsy[i]);
             // }
 
-            printf("-------------------\n");
-            printf("%f %f %f\n", last_end_x,last_end_y,car_yaw);
-            printf("-------------------\n");
+            double tmp_yaw = atan2(ptsy[1]-ptsy[0], ptsx[1]-ptsx[0]);
+
             for(int i=0;i<ptsx.size();++i)
             {
                 // printf("%f\t%f\n", ptsx[i], ptsy[i]);
                 double shift_x = ptsx[i]-last_end_x;
                 double shift_y = ptsy[i]-last_end_y;
 
-                ptsx[i] = (shift_x * cos(0) - shift_y*sin(0));
-                ptsy[i] = (shift_y * sin(0) + shift_y*cos(0));
+                // ptsx[i] = (shift_x * cos(0) - shift_y*sin(0));
+                // ptsy[i] = (shift_y * sin(0) + shift_y*cos(0));
 
-                // ptsx[i] = (shift_x * cos(0-car_yaw) - shift_y*sin(0-car_yaw));
-                // ptsy[i] = (shift_y * sin(0-car_yaw) + shift_y*cos(0-car_yaw));
+                ptsx[i] = shift_x * cos(0-tmp_yaw) - shift_y*sin(0-tmp_yaw);
+                ptsy[i] = shift_x * sin(0-tmp_yaw) + shift_y*cos(0-tmp_yaw);
                 // printf("\t\t%f\t%f\n", ptsx[i], ptsy[i]);
 
             }
@@ -498,7 +500,7 @@ int main() {
 
             s.set_points(ptsx,ptsy);
             //
-            double tmp_last_s=0;
+            // double tmp_last_s=end_path_s;
             //
             double target_x = 10;
             double target_y = s(target_x);
@@ -508,14 +510,14 @@ int main() {
             // for(int i = 0; i < num_samples-path_size; i++)
             // {
             //     // ========================== Good working JMT ==============================
-            //     double t=(i)*0.02;
+            //     double t=(i+1)*0.02 + path_size*0.2;
             //     double t2=t*t;
             //     double t3=t2*t;
             //     double t4=t3*t;
             //     double t5=t4*t;
             //     double next_s = traj[0] + traj[1]*t + traj[2]*t2 + traj[3]*t3 + traj[4]*t4 + traj[5]*t5;
             //     // printf("next_s %f  last + %f\n", next_s, next_s-tmp_last_s);
-            //     tmp_last_s = next_s;
+            //     // tmp_last_s = next_s;
             //     // double next_s = end_path_s + (i+1)*dist_inc;
             //     double next_d = 2+4*lane;
             //     // printf("map_waypoints size: %d %d %d\n", map_waypoints_s.size(),map_waypoints_x.size(),map_waypoints_y.size());
@@ -528,18 +530,48 @@ int main() {
             //   }
               for(int i = 0; i < num_samples-path_size; i++)
               {
-                // ======================================= Spline =======================================
-                double N = target_dist/(.02*ref_vel);
+                // ======================================= Spline OK =======================================
+
+                // double t=(i+1)*0.02 + path_size*0.2;
+                // double t2=t*t;
+                // double t3=t2*t;
+                // double t4=t3*t;
+                // double t5=t4*t;
+                // double next_s = traj[0] + traj[1]*t + traj[2]*t2 + traj[3]*t3 + traj[4]*t4 + traj[5]*t5;
+                // // printf("next_s %f  last + %f\n", next_s, next_s-tmp_last_s);
+                // double s_diff = next_s - end_path_s;
+                // // tmp_last_s = next_s;
+                // // double next_s = end_path_s + (i+1)*dist_inc;
+                // double next_d = 2+4*lane;
+                // // printf("map_waypoints size: %d %d %d\n", map_waypoints_s.size(),map_waypoints_x.size(),map_waypoints_y.size());
+                // vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+                // printf("\t\t%f\t%f\n", xy[0],xy[1]);
+                // printf("curr %f\tref %f\n", curr_vel,ref_vel);
+                if(curr_vel<ref_vel-0.2)
+                  curr_vel = curr_vel+0.1;
+                else
+                  if(curr_vel>ref_vel+0.3)
+                    curr_vel = curr_vel-0.15;
+
+                if(curr_vel<0)
+                  curr_vel =0;
+                if(curr_vel>kph2mps(mph2kph(49)))
+                  curr_vel = kph2mps(mph2kph(49));
+
+                double N = target_dist/(.02*curr_vel);
+                // double x_point = s_diff;
                 double x_point = x_add_on + target_x/N;
                 double y_point = s(x_point);
 
+                // printf("%f %f\n", s_diff,x_point);
                 x_add_on = x_point;
 
                 double x_ref = x_point;
                 double y_ref = y_point;
 
-                x_point = x_ref*cos(0) - y_ref*sin(0);
-                y_point = x_ref*sin(0) + y_ref*cos(0);
+                x_point = x_ref*cos(tmp_yaw) - y_ref*sin(tmp_yaw);
+                y_point = x_ref*sin(tmp_yaw) + y_ref*cos(tmp_yaw);
 
                 x_point += last_end_x;
                 y_point += last_end_y;
